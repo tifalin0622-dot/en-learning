@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LinguaFlow — B1–C1 英文單字與復讀學習平台</title>
+  <!-- 載入 Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 載入 Lucide 圖示庫 -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- 載入 Google Fonts (Inter + 思源黑體) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans TC', sans-serif;
+    }
+    /* 自訂捲軸樣式 */
+    ::-webkit-scrollbar {
+      height: 6px;
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #FFF5EC;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #FFD8BE;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-[#FFF5EC] via-[#FFFDF9] to-[#E8F8F0] text-stone-700 selection:bg-[#FFD6BA] selection:text-stone-900">
+
+  <!-- 頂部導覽列 -->
+  <header class="sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-[#FFE0CC] shadow-2xs">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-2.5 sm:h-16 flex flex-wrap items-center justify-between gap-3">
+      <!-- 品牌 Logo 與存檔狀態 -->
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-[#FFAD87] to-[#88D4AB] flex items-center justify-center text-white shadow-xs">
+          <i data-lucide="book-open" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg tracking-tight text-stone-800 leading-none flex items-center gap-2">
+            <span>LinguaFlow</span>
+            <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#E2F6EC] text-[#2D6A4F] border border-[#B7E4C7]">
+              <i data-lucide="hard-drive" class="w-3 h-3"></i>
+              <span>自動累積存檔</span>
+            </span>
+          </h1>
+          <span class="text-xs text-[#3D8B6B] font-medium">B1–C1 馬卡龍語境與復讀工作站</span>
+        </div>
+      </div>
+
+      <!-- 右側控制區：API 設定、聲線切換、分頁導覽 -->
+      <div class="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+        <!-- API Key 設定按鈕 (部署至 GitHub Pages 後可點此填入免費金鑰) -->
+        <button
+          id="btn-open-api-modal"
+          onclick="toggleApiModal(true)"
+          title="設定 Gemini API Key 以啟用 AI 萃取與擬真語音"
+          class="flex items-center gap-1 px-2.5 py-1.5 rounded-2xl text-xs font-bold border transition-all bg-[#FFF8F3] text-[#B55D43] border-[#FFD8BE] hover:bg-[#FFE8D6]"
+        >
+          <i data-lucide="key" class="w-3.5 h-3.5"></i>
+          <span id="api-status-label">API 設定</span>
+        </button>
+
+        <!-- 男女自然聲線切換器 -->
+        <div class="flex items-center bg-[#FFF0E5] border border-[#FFD8BE] p-1 rounded-2xl" title="切換自然擬真發音聲線">
+          <button
+            id="btn-voice-female"
+            onclick="setVoiceGender('female')"
+            class="flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold transition-all bg-[#FF9B71] text-white shadow-2xs"
+          >
+            <span>女聲</span>
+          </button>
+          <button
+            id="btn-voice-male"
+            onclick="setVoiceGender('male')"
+            class="flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold transition-all text-stone-600 hover:text-[#3D8B6B]"
+          >
+            <span>男聲</span>
+          </button>
+        </div>
+
+        <!-- 導覽分頁切換 -->
+        <nav class="flex items-center gap-1 bg-[#F4F1EA] p-1 rounded-2xl">
+          <button
+            id="nav-cards"
+            onclick="switchTab('cards')"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all bg-white text-[#E07A5F] shadow-2xs"
+          >
+            <i data-lucide="layers" class="w-4 h-4"></i>
+            <span id="nav-cards-label">單字庫 (5)</span>
+          </button>
+          <button
+            id="nav-shadowing"
+            onclick="switchTab('shadowing')"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all text-stone-600 hover:text-stone-800"
+          >
+            <i data-lucide="repeat" class="w-4 h-4"></i>
+            <span>復讀練習</span>
+          </button>
+          <button
+            id="nav-import"
+            onclick="switchTab('import')"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all text-stone-600 hover:text-stone-800"
+          >
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>萃取新詞</span>
+          </button>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主內容區 -->
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+
+    <!-- ==================== 分頁一：單字與日常例句庫 ==================== -->
+    <section id="tab-cards" class="space-y-6">
+      <!-- 學習進度統計儀表板 -->
+      <div id="stats-dashboard" class="bg-white/90 rounded-3xl border border-[#FFE5D4] p-5 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-5">
+        <!-- 動態渲染統計數字 -->
+      </div>
+
+      <!-- 搜尋與程度/來源篩選列 -->
+      <div class="flex flex-col gap-3 bg-white/90 p-4 rounded-3xl border border-[#FFE5D4] shadow-2xs">
+        <div class="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
+          <div class="relative flex-1">
+            <i data-lucide="search" class="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input
+              id="search-input"
+              type="text"
+              placeholder="搜尋單字、片語或中文釋義..."
+              oninput="handleSearchInput(this.value)"
+              class="w-full pl-10 pr-4 py-2 bg-[#FFF8F3] border border-[#FFD8BE] rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9B71]/30 focus:border-[#FF9B71]"
+            />
+          </div>
+          <div id="level-filter-group" class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            <!-- 動態渲染程度篩選鈕 -->
+          </div>
+        </div>
+
+        <!-- 來源影片 / 文章分類篩選 -->
+        <div id="source-filter-group" class="flex items-center gap-2 pt-2 border-t border-[#F4F1EA] overflow-x-auto">
+          <!-- 動態渲染來源標籤 -->
+        </div>
+      </div>
+
+      <!-- 單字卡片網格 -->
+      <div id="cards-grid-container">
+        <!-- 動態渲染卡片 -->
+      </div>
+    </section>
+
+    <!-- ==================== 分頁二：沉浸式復讀練習室 ==================== -->
+    <section id="tab-shadowing" class="hidden max-w-3xl mx-auto space-y-6">
+      <div id="shadowing-container">
+        <!-- 動態渲染復讀練習區 -->
+      </div>
+    </section>
+
+    <!-- ==================== 分頁三：連結與文本智慧萃取 ==================== -->
+    <section id="tab-import" class="hidden max-w-2xl mx-auto space-y-6">
+      <div class="bg-white/95 rounded-3xl border border-[#FFE5D4] shadow-2xs p-6 sm:p-8 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-stone-800 flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-5 h-5 text-[#FF9B71]"></i>
+            <span>智慧抓取 B1–C1 單字與片語</span>
+          </h2>
+          <p class="text-sm text-stone-500 mt-1">
+            貼上你正在看的英文文章段落或 YouTube 字幕逐字稿，AI 會自動過濾基礎詞彙，萃取出 B1–C1 核心單字、音標並生成日常例句，且自動累加保存不會洗掉舊單字。
+          </p>
+        </div>
+
+        <!-- 來源連結欄位 -->
+        <div class="space-y-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+            <i data-lucide="link" class="w-3.5 h-3.5 text-[#3D8B6B]"></i>
+            <span>來源影片或文章網址（紀錄出處用）</span>
+          </label>
+          <input
+            id="import-url"
+            type="url"
+            value="https://youtu.be/YZd7NodhcOs"
+            placeholder="https://youtu.be/..."
+            class="w-full px-4 py-2.5 bg-[#FFF8F3] border border-[#FFD8BE] rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9B71]/30 focus:border-[#FF9B71]"
+          />
+        </div>
+
+        <!-- 文本貼上欄位 -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+              <i data-lucide="file-text" class="w-3.5 h-3.5 text-[#FF9B71]"></i>
+              <span>文章內文或 YouTube 逐字稿 (Transcript)</span>
+            </label>
+            <button
+              type="button"
+              onclick="fillSampleArticle()"
+              class="text-xs font-bold text-[#3D8B6B] hover:text-[#2D6A4F] underline"
+            >
+              填入範例英文文章測試
+            </button>
+          </div>
+          <textarea
+            id="import-text"
+            rows="6"
+            placeholder="請在此貼上英文文章段落或影片字幕內容..."
+            class="w-full p-4 bg-[#FFF8F3] border border-[#FFD8BE] rounded-2xl text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#FF9B71]/30 focus:border-[#FF9B71]"
+          ></textarea>
+        </div>
+
+        <!-- 狀態提示訊息 -->
+        <div id="analyze-status-box" class="hidden"></div>
+
+        <!-- 執行萃取按鈕 -->
+        <button
+          id="btn-analyze"
+          onclick="handleAnalyzeContent()"
+          class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#FF9B71] to-[#6BCB9F] hover:from-[#F2845C] hover:to-[#52B788] disabled:opacity-60 text-white font-bold text-sm shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span>萃取出單字並累加到我的單字庫</span>
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- API Key 設定彈窗 (方便部署到 GitHub Pages 後直接在網頁填入免費金鑰) -->
+  <div id="api-modal" class="hidden fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl border border-[#FFE5D4] max-w-md w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-stone-800 flex items-center gap-2">
+          <i data-lucide="key" class="w-5 h-5 text-[#FF9B71]"></i>
+          <span>設定 Gemini API Key</span>
+        </h3>
+        <button onclick="toggleApiModal(false)" class="p-1.5 rounded-xl text-stone-400 hover:bg-stone-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <p class="text-xs text-stone-600 leading-relaxed">
+        上傳至 GitHub Pages 後，填入你自己的免費 <strong>Google AI Studio API Key</strong>，即可啟用「AI 智慧萃取單字」與「AI 男女自然擬真語音」（金鑰僅儲存在你自己的瀏覽器本機中，不會外傳）。
+      </p>
+      <div class="space-y-1.5">
+        <label class="text-xs font-bold text-stone-500">Gemini API Key</label>
+        <input
+          id="input-api-key"
+          type="password"
+          placeholder="AIzaSy..."
+          class="w-full px-4 py-2.5 bg-[#FFF8F3] border border-[#FFD8BE] rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9B71]/30 focus:border-[#FF9B71]"
+        />
+      </div>
+      <div class="flex items-center justify-between pt-2">
+        <a
+          href="https://aistudio.google.com/apikey"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-xs font-bold text-[#3D8B6B] hover:underline flex items-center gap-1"
+        >
+          <span>免費取得 API Key</span>
+          <i data-lucide="external-link" class="w-3 h-3"></i>
+        </a>
+        <div class="flex items-center gap-2">
+          <button
+            onclick="toggleApiModal(false)"
+            class="px-4 py-2 rounded-2xl text-xs font-bold text-stone-600 bg-stone-100 hover:bg-stone-200"
+          >
+            取消
+          </button>
+          <button
+            onclick="saveApiKey()"
+            class="px-5 py-2 rounded-2xl text-xs font-bold text-white bg-gradient-to-r from-[#FF9B71] to-[#6BCB9F] shadow-2xs"
+          >
+            儲存設定
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部輕量回饋通知 (Toast) — 支援一鍵復原「我會了」 -->
+  <div id="toast-container" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-stone-800/95 backdrop-blur-xs text-white px-5 py-3 rounded-2xl shadow-lg flex items-center gap-3 text-sm">
+    <!-- 動態渲染 Toast 內容 -->
+  </div>
+
+  <script>
+    // ==================== 1. 預設資料與常數 ====================
+    const STORAGE_KEY_VOCAB = 'linguaflow_vocab_html_v1';
+    const STORAGE_KEY_API = 'linguaflow_gemini_api_key';
+
+    const INITIAL_VOCAB = [
+      {
+        id: 'v1',
+        term: 'oversight',
+        phonetic: '/ˈoʊvərsaɪt/',
+        cefr: 'C1',
+        partOfSpeech: 'noun',
+        definitionZh: '疏忽、失察、無意中的遺漏',
+        sourceContext: 'A small oversight that cost me another sandwich.',
+        timestamp: '00:06:08',
+        dailyExample: 'Leaving the attachment off the email was an honest oversight.',
+        sourceTitle: 'English Podcast: Daily Life & Routines',
+        sourceUrl: 'https://youtu.be/YZd7NodhcOs',
+        mastered: false,
+        createdAt: 1700000005000
+      },
+      {
+        id: 'v2',
+        term: 'unattended',
+        phonetic: '/ˌʌnəˈtendɪd/',
+        cefr: 'B2',
+        partOfSpeech: 'adj.',
+        definitionZh: '無人看管的、未受照看的',
+        sourceContext: "Then I realize I've left the cooking unattended with nobody watching it.",
+        timestamp: '00:20:05',
+        dailyExample: 'Never leave your luggage unattended at the train station.',
+        sourceTitle: 'English Podcast: Daily Life & Routines',
+        sourceUrl: 'https://youtu.be/YZd7NodhcOs',
+        mastered: false,
+        createdAt: 1700000004000
+      },
+      {
+        id: 'v3',
+        term: 'run errands',
+        phonetic: '/rʌn ˈerəndz/',
+        cefr: 'B1',
+        partOfSpeech: 'phrase',
+        definitionZh: '辦雜事、出門跑腿（採買、寄件等）',
+        sourceContext: "I'm stopping by your mom's after work right, and I've got another errand.",
+        timestamp: '00:15:11',
+        dailyExample: 'I spent the entire Saturday morning running errands around town.',
+        sourceTitle: 'English Podcast: Daily Life & Routines',
+        sourceUrl: 'https://youtu.be/YZd7NodhcOs',
+        mastered: false,
+        createdAt: 1700000003000
+      },
+      {
+        id: 'v4',
+        term: 'put off',
+        phonetic: '/pʊt ɔːf/',
+        cefr: 'B2',
+        partOfSpeech: 'phrasal verb',
+        definitionZh: '拖延、推遲',
+        sourceContext: 'Yesterday I had a call to make, but I kept putting it off because I thought it would take ages.',
+        timestamp: '00:11:46',
+        dailyExample: "Don't put off until tomorrow what you can finish today.",
+        sourceTitle: 'English Podcast: Daily Life & Routines',
+        sourceUrl: 'https://youtu.be/YZd7NodhcOs',
+        mastered: false,
+        createdAt: 1700000002000
+      },
+      {
+        id: 'v5',
+        term: 'call it a day',
+        phonetic: '/kɔːl ɪt ə deɪ/',
+        cefr: 'B2',
+        partOfSpeech: 'idiom',
+        definitionZh: '收工、結束今天的工作',
+        sourceContext: 'I finished the report though, then I called it a day and went home.',
+        timestamp: '00:14:58',
+        dailyExample: "We've made great progress on the presentation; let's call it a day.",
+        sourceTitle: 'English Podcast: Daily Life & Routines',
+        sourceUrl: 'https://youtu.be/YZd7NodhcOs',
+        mastered: false,
+        createdAt: 1700000001000
+      }
+    ];
+
+    const SAMPLE_ARTICLE_TEXT = `When trying to build sustainable daily habits, many people inadvertently fall into the trap of perfectionism. Instead of taking incremental steps, they overhaul their entire schedule overnight, which often leads to burnout within a few weeks. Behavioural researchers suggest that friction plays a pivotal role: if you want to read more before bed, leave a book on your pillow so it is effortless to pick up. Conversely, making distracting apps slightly harder to access can curb mindless scrolling.`;
+
+    // ==================== 2. 應用程式狀態管理 ====================
+    const state = {
+      activeTab: 'cards', // 'cards' | 'shadowing' | 'import'
+      vocabList: loadVocabFromStorage(),
+      filterLevel: 'ALL',
+      filterSource: 'ALL',
+      learningStatusFilter: 'learning', // 'learning' | 'mastered' | 'all'
+      searchQuery: '',
+      voiceGender: 'female', // 'female' | 'male'
+      isLoadingAudio: false,
+      isSpeaking: false,
+      speakingTextId: null,
+      // 復讀練習室
+      currentIndex: 0,
+      practiceTarget: 'dailyExample', // 'dailyExample' | 'sourceContext'
+      speechRate: 1.0,
+      isLooping: false,
+      isRecording: false,
+      spokenText: '',
+      pronunciationScore: null,
+      speechError: '',
+      // API 金鑰
+      geminiApiKey: localStorage.getItem(STORAGE_KEY_API) || ''
+    };
+
+    let currentAudio = null;
+    const audioCache = {};
+    let loopTimer = null;
+    let recognition = null;
+    let toastTimer = null;
+
+    function loadVocabFromStorage() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY_VOCAB);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {
+        console.error('讀取本機單字庫失敗:', e);
+      }
+      return [...INITIAL_VOCAB];
+    }
+
+    function saveVocabToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_VOCAB, JSON.stringify(state.vocabList));
+      } catch (e) {
+        console.error('寫入本機單字庫失敗:', e);
+      }
+    }
+
+    // ==================== 3. 工具函式 ====================
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function getLevelBadgeStyle(level) {
+      switch (level) {
+        case 'B1':
+          return 'bg-[#D8F3DC] text-[#2D6A4F] border-[#B7E4C7]';
+        case 'B2':
+          return 'bg-[#FFF3B0] text-[#7F5539] border-[#FFE6A7]';
+        case 'C1':
+          return 'bg-[#FFD6BA] text-[#9C4221] border-[#FFCAD4]';
+        default:
+          return 'bg-stone-100 text-stone-700 border-stone-200';
+      }
+    }
+
+    function getShadowingPool() {
+      const unmastered = state.vocabList.filter(v => !v.mastered);
+      return unmastered.length > 0 ? unmastered : state.vocabList;
+    }
+
+    function pcm16Base64ToWavUrl(base64Data, sampleRate = 24000) {
+      const binaryString = atob(base64Data);
+      const pcmLength = binaryString.length;
+      const wavBuffer = new ArrayBuffer(44 + pcmLength);
+      const view = new DataView(wavBuffer);
+
+      const writeString = (offset, str) => {
+        for (let i = 0; i < str.length; i++) {
+          view.setUint8(offset + i, str.charCodeAt(i));
+        }
+      };
+
+      writeString(0, 'RIFF');
+      view.setUint32(4, 36 + pcmLength, true);
+      writeString(8, 'WAVE');
+      writeString(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeString(36, 'data');
+      view.setUint32(40, pcmLength, true);
+
+      const bytes = new Uint8Array(wavBuffer, 44);
+      for (let i = 0; i < pcmLength; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      const blob = new Blob([wavBuffer], { type: 'audio/wav' });
+      return URL.createObjectURL(blob);
+    }
+
+    // 指數退避重試機制
+    async function fetchWithBackoff(url, options, maxRetries = 3) {
+      let delay = 1000;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const response = await fetch(url, options);
+          if (response.ok) return response;
+          if (response.status === 429 || response.status >= 500) {
+            if (attempt < maxRetries) {
+              await new Promise(res => setTimeout(res, delay));
+              delay *= 2;
+              continue;
+            }
+          }
+          return response;
+        } catch (err) {
+          if (attempt < maxRetries) {
+            await new Promise(res => setTimeout(res, delay));
+            delay *= 2;
+            continue;
+          }
+          throw err;
+        }
+      }
+    }
+
+    // ==================== 4. 語音朗讀與跟讀引擎 ====================
+    function stopAllAudio() {
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio = null;
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      state.isSpeaking = false;
+      state.speakingTextId = null;
+      refreshAudioUI();
+    }
+
+    function fallbackBrowserSpeak(text, rate, onEndCallback) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = rate;
+      const voices = window.speechSynthesis.getVoices();
+      const enVoices = voices.filter(v => v.lang.startsWith('en'));
+      if (enVoices.length > 0) {
+        const preferred = enVoices.find(v =>
+          state.voiceGender === 'female'
+            ? /female|samantha|victoria|zira|google us english/i.test(v.name)
+            : /male|daniel|alex|david|guy/i.test(v.name)
+        );
+        if (preferred) utterance.voice = preferred;
+      }
+      utterance.onstart = () => {
+        state.isSpeaking = true;
+        refreshAudioUI();
+      };
+      utterance.onend = () => {
+        state.isSpeaking = false;
+        state.speakingTextId = null;
+        refreshAudioUI();
+        if (onEndCallback) onEndCallback();
+      };
+      utterance.onerror = () => {
+        state.isSpeaking = false;
+        state.speakingTextId = null;
+        refreshAudioUI();
+      };
+      window.speechSynthesis.speak(utterance);
+    }
+
+    async function speakText(text, rate = 1.0, onEndCallback = null, textId = null) {
+      if (textId && state.speakingTextId === textId && state.isSpeaking) {
+        stopAllAudio();
+        return;
+      }
+      stopAllAudio();
+      if (textId) state.speakingTextId = textId;
+
+      const voiceName = state.voiceGender === 'female' ? 'Aoede' : 'Puck';
+      const cacheKey = `${voiceName}::${text}`;
+
+      const playWavUrl = (url) => {
+        const audio = new Audio(url);
+        audio.playbackRate = rate;
+        currentAudio = audio;
+        audio.onplay = () => {
+          state.isSpeaking = true;
+          refreshAudioUI();
+        };
+        audio.onended = () => {
+          state.isSpeaking = false;
+          state.speakingTextId = null;
+          refreshAudioUI();
+          if (onEndCallback) onEndCallback();
+        };
+        audio.onerror = () => {
+          state.isSpeaking = false;
+          state.speakingTextId = null;
+          refreshAudioUI();
+        };
+        audio.play().catch(() => {
+          fallbackBrowserSpeak(text, rate, onEndCallback);
+        });
+      };
+
+      if (audioCache[cacheKey]) {
+        playWavUrl(audioCache[cacheKey]);
+        return;
+      }
+
+      state.isLoadingAudio = true;
+      refreshAudioUI();
+
+      try {
+        const apiKey = state.geminiApiKey || '';
+        const response = await fetchWithBackoff(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `Say naturally and clearly: ${text}` }] }],
+              generationConfig: {
+                responseModalities: ['AUDIO'],
+                speechConfig: {
+                  voiceConfig: {
+                    prebuiltVoiceConfig: { voiceName }
+                  }
+                }
+              }
+            })
+          }
+        );
+
+        if (!response || !response.ok) throw new Error('TTS API failed');
+        const data = await response.json();
+        const inlineData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+        if (!inlineData?.data) throw new Error('No audio payload');
+
+        const rateMatch = inlineData.mimeType?.match(/rate=(\d+)/);
+        const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+        const wavUrl = pcm16Base64ToWavUrl(inlineData.data, sampleRate);
+        audioCache[cacheKey] = wavUrl;
+        state.isLoadingAudio = false;
+        playWavUrl(wavUrl);
+      } catch (err) {
+        state.isLoadingAudio = false;
+        refreshAudioUI();
+        fallbackBrowserSpeak(text, rate, onEndCallback);
+      }
+    }
+
+    function refreshAudioUI() {
+      if (state.activeTab === 'cards') {
+        renderCardsGrid();
+      } else if (state.activeTab === 'shadowing') {
+        renderShadowingTab();
+      }
+    }
+
+    // ==================== 5. 互動操作邏輯 ====================
+    function switchTab(tabName) {
+      state.activeTab = tabName;
+      state.isLooping = false;
+      if (loopTimer) clearTimeout(loopTimer);
+      stopAllAudio();
+
+      document.getElementById('tab-cards').classList.toggle('hidden', tabName !== 'cards');
+      document.getElementById('tab-shadowing').classList.toggle('hidden', tabName !== 'shadowing');
+      document.getElementById('tab-import').classList.toggle('hidden', tabName !== 'import');
+
+      const navCards = document.getElementById('nav-cards');
+      const navShadow = document.getElementById('nav-shadowing');
+      const navImport = document.getElementById('nav-import');
+
+      navCards.className = `flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all ${
+        tabName === 'cards' ? 'bg-white text-[#E07A5F] shadow-2xs' : 'text-stone-600 hover:text-stone-800'
+      }`;
+      navShadow.className = `flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all ${
+        tabName === 'shadowing' ? 'bg-white text-[#3D8B6B] shadow-2xs' : 'text-stone-600 hover:text-stone-800'
+      }`;
+      navImport.className = `flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all ${
+        tabName === 'import' ? 'bg-white text-[#E07A5F] shadow-2xs' : 'text-stone-600 hover:text-stone-800'
+      }`;
+
+      renderAll();
+    }
+
+    function setVoiceGender(gender) {
+      state.voiceGender = gender;
+      const btnFemale = document.getElementById('btn-voice-female');
+      const btnMale = document.getElementById('btn-voice-male');
+
+      btnFemale.className = `flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+        gender === 'female' ? 'bg-[#FF9B71] text-white shadow-2xs' : 'text-stone-600 hover:text-[#E07A5F]'
+      }`;
+      btnMale.className = `flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+        gender === 'male' ? 'bg-[#6BCB9F] text-white shadow-2xs' : 'text-stone-600 hover:text-[#3D8B6B]'
+      }`;
+
+      if (state.activeTab === 'shadowing') renderShadowingTab();
+    }
+
+    function toggleMastered(id, autoAdvance = false) {
+      const target = state.vocabList.find(v => v.id === id);
+      if (!target) return;
+      target.mastered = !target.mastered;
+      saveVocabToStorage();
+
+      showToast(id, target.term, target.mastered);
+
+      if (autoAdvance && target.mastered) {
+        state.isLooping = false;
+        if (loopTimer) clearTimeout(loopTimer);
+        stopAllAudio();
+      }
+      renderAll();
+    }
+
+    function showToast(id, term, mastered) {
+      const container = document.getElementById('toast-container');
+      container.innerHTML = `
+        <i data-lucide="check-circle-2" class="w-4 h-4 text-[#88D4AB] shrink-0"></i>
+        <span>${
+          mastered
+            ? `已將「<strong>${escapeHtml(term)}</strong>」收納至已學會清單！`
+            : `已將「<strong>${escapeHtml(term)}</strong>」移回學習中清單`
+        }</span>
+        <button onclick="undoToast('${escapeHtml(id)}')" class="text-xs font-bold text-[#FFB482] hover:text-[#FFD8BE] underline ml-1 cursor-pointer">
+          復原
+        </button>
+      `;
+      container.classList.remove('hidden');
+      lucide.createIcons();
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        container.classList.add('hidden');
+      }, 4000);
+    }
+
+    function undoToast(id) {
+      toggleMastered(id, false);
+      document.getElementById('toast-container').classList.add('hidden');
+    }
+
+    function setLearningStatusFilter(status) {
+      state.learningStatusFilter = status;
+      renderStatsDashboard();
+      renderCardsGrid();
+    }
+
+    function setFilterLevel(level) {
+      state.filterLevel = level;
+      renderFilterBars();
+      renderCardsGrid();
+    }
+
+    function setFilterSource(source) {
+      state.filterSource = source;
+      renderFilterBars();
+      renderCardsGrid();
+    }
+
+    function handleSearchInput(val) {
+      state.searchQuery = val;
+      renderCardsGrid();
+    }
+
+    function startShadowingItem(id) {
+      const pool = getShadowingPool();
+      const idx = pool.findIndex(v => v.id === id);
+      state.currentIndex = idx >= 0 ? idx : 0;
+      switchTab('shadowing');
+    }
+
+    // ==================== 6. 復讀練習室控制 ====================
+    function changeShadowIndex(delta) {
+      const pool = getShadowingPool();
+      if (pool.length === 0) return;
+      state.isLooping = false;
+      if (loopTimer) clearTimeout(loopTimer);
+      stopAllAudio();
+      state.spokenText = '';
+      state.pronunciationScore = null;
+      state.speechError = '';
+      state.currentIndex = (state.currentIndex + delta + pool.length) % pool.length;
+      renderShadowingTab();
+    }
+
+    function setPracticeTarget(target) {
+      state.practiceTarget = target;
+      state.isLooping = false;
+      if (loopTimer) clearTimeout(loopTimer);
+      stopAllAudio();
+      state.spokenText = '';
+      state.pronunciationScore = null;
+      state.speechError = '';
+      renderShadowingTab();
+    }
+
+    function setSpeechRate(rate) {
+      state.speechRate = rate;
+      renderShadowingTab();
+    }
+
+    function toggleLooping() {
+      state.isLooping = !state.isLooping;
+      if (loopTimer) clearTimeout(loopTimer);
+
+      if (!state.isLooping) {
+        stopAllAudio();
+        renderShadowingTab();
+        return;
+      }
+
+      const pool = getShadowingPool();
+      const item = pool[state.currentIndex % pool.length];
+      if (!item) return;
+
+      const triggerLoop = () => {
+        if (!state.isLooping || state.activeTab !== 'shadowing') return;
+        speakText(
+          item[state.practiceTarget],
+          state.speechRate,
+          () => {
+            if (state.isLooping && state.activeTab === 'shadowing') {
+              loopTimer = setTimeout(triggerLoop, 1200);
+            }
+          },
+          'shadow-main'
+        );
+      };
+
+      renderShadowingTab();
+      triggerLoop();
+    }
+
+    function toggleRecording() {
+      state.speechError = '';
+      if (state.isRecording) {
+        if (recognition) recognition.stop();
+        state.isRecording = false;
+        renderShadowingTab();
+        return;
+      }
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        state.speechError = '您的瀏覽器尚未支援原生語音辨識，建議使用 Chrome 或 Edge 瀏覽器進行跟讀評分。';
+        renderShadowingTab();
+        return;
+      }
+
+      state.isLooping = false;
+      if (loopTimer) clearTimeout(loopTimer);
+      stopAllAudio();
+
+      recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.interimResults = true;
+      recognition.continuous = false;
+
+      recognition.onstart = () => {
+        state.isRecording = true;
+        state.spokenText = '';
+        state.pronunciationScore = null;
+        renderShadowingTab();
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        state.spokenText = transcript;
+
+        if (event.results[event.results.length - 1].isFinal) {
+          const pool = getShadowingPool();
+          const item = pool[state.currentIndex % pool.length];
+          if (item) {
+            calculateAccuracy(item[state.practiceTarget], transcript);
+          }
+        }
+        renderShadowingTab();
+      };
+
+      recognition.onerror = (event) => {
+        state.isRecording = false;
+        state.speechError = `麥克風辨識提示：${event.error === 'not-allowed' ? '請允許瀏覽器使用麥克風權限' : '未偵測到清晰語音，請再試一次'}`;
+        renderShadowingTab();
+      };
+
+      recognition.onend = () => {
+        state.isRecording = false;
+        renderShadowingTab();
+      };
+
+      recognition.start();
+    }
+
+    function calculateAccuracy(target, spoken) {
+      const clean = (str) => str.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(Boolean);
+      const targetWords = clean(target);
+      const spokenWords = clean(spoken);
+      if (targetWords.length === 0) return;
+
+      let matchCount = 0;
+      targetWords.forEach(w => {
+        if (spokenWords.includes(w)) matchCount++;
+      });
+
+      state.pronunciationScore = Math.min(100, Math.round((matchCount / targetWords.length) * 100));
+    }
+
+    function buildDiffHtml(target, spoken) {
+      if (!spoken) return '';
+      const spokenClean = spoken.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
+      return target.split(/\s+/).map(word => {
+        const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
+        const isMatch = spokenClean.includes(cleanWord);
+        return `<span class="inline-block mr-1.5 px-1.5 py-0.5 rounded-lg ${
+          isMatch
+            ? 'text-[#2D6A4F] bg-[#D8F3DC] font-semibold'
+            : 'text-[#9B2226] bg-[#FFCCD5] underline decoration-wavy'
+        }">${escapeHtml(word)}</span>`;
+      }).join('');
+    }
+
+    // 鍵盤快捷鍵
+    window.addEventListener('keydown', (e) => {
+      if (state.activeTab !== 'shadowing') return;
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        const pool = getShadowingPool();
+        const item = pool[state.currentIndex % pool.length];
+        if (item) speakText(item[state.practiceTarget], state.speechRate, null, 'shadow-main');
+      } else if (e.code === 'ArrowRight') {
+        e.preventDefault();
+        changeShadowIndex(1);
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        changeShadowIndex(-1);
+      }
+    });
+
+    // ==================== 7. AI 智慧萃取與 API Key 設定 ====================
+    function toggleApiModal(show) {
+      const modal = document.getElementById('api-modal');
+      const input = document.getElementById('input-api-key');
+      if (show) {
+        input.value = state.geminiApiKey;
+        modal.classList.remove('hidden');
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function saveApiKey() {
+      const val = document.getElementById('input-api-key').value.trim();
+      state.geminiApiKey = val;
+      localStorage.setItem(STORAGE_KEY_API, val);
+      toggleApiModal(false);
+      updateApiStatusBadge();
+      showToast('api-saved', val ? 'Gemini API Key 已儲存' : '已清除自訂 API Key', true);
+    }
+
+    function updateApiStatusBadge() {
+      const label = document.getElementById('api-status-label');
+      const btn = document.getElementById('btn-open-api-modal');
+      if (state.geminiApiKey) {
+        label.textContent = 'API 已就緒';
+        btn.className = 'flex items-center gap-1 px-2.5 py-1.5 rounded-2xl text-xs font-bold border transition-all bg-[#EAF8F0] text-[#2D6A4F] border-[#B7E4C7] hover:bg-[#D8F3DC]';
+      } else {
+        label.textContent = 'API 設定';
+        btn.className = 'flex items-center gap-1 px-2.5 py-1.5 rounded-2xl text-xs font-bold border transition-all bg-[#FFF8F3] text-[#B55D43] border-[#FFD8BE] hover:bg-[#FFE8D6]';
+      }
+    }
+
+    function fillSampleArticle() {
+      document.getElementById('import-url').value = 'https://medium.com/productivity-habits';
+      document.getElementById('import-text').value = SAMPLE_ARTICLE_TEXT;
+    }
+
+    async function handleAnalyzeContent() {
+      const inputUrl = document.getElementById('import-url').value.trim();
+      const inputText = document.getElementById('import-text').value.trim();
+      const statusBox = document.getElementById('analyze-status-box');
+      const btnAnalyze = document.getElementById('btn-analyze');
+
+      if (!inputText) {
+        statusBox.className = 'p-4 rounded-2xl text-sm flex items-start gap-2.5 bg-[#FFF0F3] text-[#9B2226] border border-[#FFCCD5]';
+        statusBox.innerHTML = `<i data-lucide="alert-circle" class="w-5 h-5 shrink-0 text-[#E63946]"></i><span>請貼上文章內文或 YouTube 字幕逐字稿再進行分析。</span>`;
+        statusBox.classList.remove('hidden');
+        lucide.createIcons();
+        return;
+      }
+
+      btnAnalyze.disabled = true;
+      btnAnalyze.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>AI 正在分析語境並累加至單字庫...</span>`;
+      statusBox.classList.add('hidden');
+      lucide.createIcons();
+
+      try {
+        const apiKey = state.geminiApiKey || '';
+        const prompt = `Analyze the following English text (from a video transcript or article). Extract 5 to 8 useful vocabulary words, phrasal verbs, or idiomatic expressions at the CEFR B1 to C1 level. Ignore basic A1/A2 words.
+For each item, provide:
+- term: the word or phrase
+- phonetic: standard IPA phonetic transcription (e.g. /ˈoʊvərsaɪt/)
+- cefr: "B1", "B2", or "C1"
+- partOfSpeech: e.g. "noun", "verb", "adj.", "phrasal verb", "idiom"
+- definitionZh: concise Traditional Chinese definition
+- sourceContext: the exact sentence from the provided text containing this term
+- dailyExample: a natural, practical daily conversational sentence using this term
+- sourceTitle: a short 3-6 word English title summarizing this text's topic
+
+Text to analyze:
+"""
+${inputText}
+"""`;
+
+        const response = await fetchWithBackoff(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                responseMimeType: 'application/json',
+                responseSchema: {
+                  type: 'ARRAY',
+                  items: {
+                    type: 'OBJECT',
+                    properties: {
+                      term: { type: 'STRING' },
+                      phonetic: { type: 'STRING' },
+                      cefr: { type: 'STRING' },
+                      partOfSpeech: { type: 'STRING' },
+                      definitionZh: { type: 'STRING' },
+                      sourceContext: { type: 'STRING' },
+                      dailyExample: { type: 'STRING' },
+                      sourceTitle: { type: 'STRING' }
+                    },
+                    required: ['term', 'phonetic', 'cefr', 'partOfSpeech', 'definitionZh', 'sourceContext', 'dailyExample', 'sourceTitle']
+                  }
+                }
+              }
+            })
+          }
+        );
+
+        if (!response || !response.ok) {
+          throw new Error(response?.status === 400 || response?.status === 403 ? 'API_KEY_INVALID' : 'API_FAILED');
+        }
+
+        const data = await response.json();
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+        const extracted = JSON.parse(rawText);
+
+        // 過濾重複詞彙，確保只累加新單字且保留原有單字
+        const existingTerms = new Set(state.vocabList.map(v => v.term.toLowerCase().trim()));
+        const uniqueNewItems = extracted.filter(item => !existingTerms.has(item.term.toLowerCase().trim()));
+
+        const formattedNewItems = uniqueNewItems.map((item, idx) => ({
+          ...item,
+          id: `custom-${Date.now()}-${idx}`,
+          timestamp: inputUrl.includes('youtu') ? '影片片段' : '文章段落',
+          sourceTitle: item.sourceTitle || (inputUrl.includes('youtu') ? 'YouTube 匯入影片' : '匯入英文文章'),
+          sourceUrl: inputUrl || '自訂貼上內容',
+          mastered: false,
+          createdAt: Date.now() - idx
+        }));
+
+        state.vocabList = [...formattedNewItems, ...state.vocabList];
+        saveVocabToStorage();
+
+        const skippedCount = extracted.length - formattedNewItems.length;
+        statusBox.className = 'p-4 rounded-2xl text-sm flex items-start gap-2.5 bg-[#EAF8F0] text-[#2D6A4F] border border-[#B7E4C7]';
+        statusBox.innerHTML = `<i data-lucide="check-circle-2" class="w-5 h-5 shrink-0 text-[#3D8B6B]"></i><span>${
+          formattedNewItems.length > 0
+            ? `成功新增 <strong>${formattedNewItems.length}</strong> 個 B1–C1 新單字並累加至單字庫！（累計共 <strong>${state.vocabList.length}</strong> 個單字${skippedCount > 0 ? `，已自動略過 ${skippedCount} 個重複詞彙` : ''}）`
+            : `分析完成，這段內容的 ${extracted.length} 個核心單字都已經在你的單字庫裡囉！`
+        }</span>`;
+        statusBox.classList.remove('hidden');
+        document.getElementById('import-text').value = '';
+
+        renderAll();
+        if (formattedNewItems.length > 0) {
+          state.learningStatusFilter = 'learning';
+          state.filterSource = 'ALL';
+          setTimeout(() => switchTab('cards'), 1200);
+        }
+      } catch (err) {
+        console.error(err);
+        const msg = err.message === 'API_KEY_INVALID'
+          ? '請先點擊右上角「API 設定」填入有效的 Google Gemini API Key，即可使用 AI 智慧萃取功能。'
+          : '智慧解析時發生連線錯誤，請確認網路或 API Key 設定後再試一次。';
+        statusBox.className = 'p-4 rounded-2xl text-sm flex items-start gap-2.5 bg-[#FFF0F3] text-[#9B2226] border border-[#FFCCD5]';
+        statusBox.innerHTML = `<i data-lucide="alert-circle" class="w-5 h-5 shrink-0 text-[#E63946]"></i><span>${msg}</span>`;
+        statusBox.classList.remove('hidden');
+      } finally {
+        btnAnalyze.disabled = false;
+        btnAnalyze.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i><span>萃取出單字並累加到我的單字庫</span>`;
+        lucide.createIcons();
+      }
+    }
+
+    // ==================== 8. 畫面渲染函式 ====================
+    function renderStatsDashboard() {
+      const totalCount = state.vocabList.length;
+      const masteredCount = state.vocabList.filter(v => v.mastered).length;
+      const learningCount = totalCount - masteredCount;
+      const progressPercent = totalCount > 0 ? Math.round((masteredCount / totalCount) * 100) : 0;
+
+      document.getElementById('nav-cards-label').textContent = `單字庫 (${totalCount})`;
+
+      const container = document.getElementById('stats-dashboard');
+      container.innerHTML = `
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FFE5D4] to-[#D8F3DC] border border-[#FFD8BE] flex items-center justify-center shrink-0">
+            <i data-lucide="award" class="w-6 h-6 text-[#E07A5F]"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-stone-400">學習單字量統計</span>
+              <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#D8F3DC] text-[#2D6A4F]">
+                完成度 ${progressPercent}%
+              </span>
+            </div>
+            <div class="flex items-baseline gap-4 mt-1 flex-wrap">
+              <p class="text-sm text-stone-600">
+                總收錄 <strong class="text-xl font-extrabold text-stone-800 mx-1">${totalCount}</strong> 個
+              </p>
+              <span class="text-stone-300">|</span>
+              <p class="text-sm text-[#2D6A4F]">
+                已學會 <strong class="text-xl font-extrabold text-[#3D8B6B] mx-1">${masteredCount}</strong> 個
+              </p>
+              <span class="text-stone-300">|</span>
+              <p class="text-sm text-[#B55D43]">
+                學習中 <strong class="text-xl font-extrabold text-[#E07A5F] mx-1">${learningCount}</strong> 個
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2.5 min-w-[260px]">
+          <div class="w-full h-2.5 bg-[#F4F1EA] rounded-full overflow-hidden">
+            <div
+              class="h-full bg-gradient-to-r from-[#FF9B71] to-[#6BCB9F] transition-all duration-500 rounded-full"
+              style="width: ${progressPercent}%"
+            ></div>
+          </div>
+          <div class="flex bg-[#F4F1EA] p-1 rounded-2xl">
+            <button
+              onclick="setLearningStatusFilter('learning')"
+              class="flex-1 py-1.5 px-2.5 rounded-xl text-xs font-bold transition-all ${
+                state.learningStatusFilter === 'learning' ? 'bg-[#FF9B71] text-white shadow-2xs' : 'text-stone-600 hover:text-stone-800'
+              }"
+            >
+              學習中 (${learningCount})
+            </button>
+            <button
+              onclick="setLearningStatusFilter('mastered')"
+              class="flex-1 py-1.5 px-2.5 rounded-xl text-xs font-bold transition-all ${
+                state.learningStatusFilter === 'mastered' ? 'bg-[#6BCB9F] text-white shadow-2xs' : 'text-stone-600 hover:text-stone-800'
+              }"
+            >
+              已學會收藏 (${masteredCount})
+            </button>
+            <button
+              onclick="setLearningStatusFilter('all')"
+              class="py-1.5 px-2.5 rounded-xl text-xs font-bold transition-all ${
+                state.learningStatusFilter === 'all' ? 'bg-white text-stone-800 shadow-2xs' : 'text-stone-600 hover:text-stone-800'
+              }"
+            >
+              全部
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderFilterBars() {
+      // 程度篩選鈕
+      const levels = ['ALL', 'B1', 'B2', 'C1'];
+      document.getElementById('level-filter-group').innerHTML = levels.map(level => `
+        <button
+          onclick="setFilterLevel('${level}')"
+          class="px-3 py-1.5 rounded-xl text-xs font-bold transition-colors shrink-0 ${
+            state.filterLevel === level
+              ? 'bg-[#6BCB9F] text-white shadow-2xs'
+              : 'bg-[#F4F1EA] text-stone-600 hover:bg-[#FFE5D4] hover:text-[#B55D43]'
+          }"
+        >
+          ${level === 'ALL' ? '全部程度' : level}
+        </button>
+      `).join('');
+
+      // 來源篩選列
+      const sources = Array.from(new Set(state.vocabList.map(v => v.sourceTitle).filter(Boolean)));
+      const sourceGroup = document.getElementById('source-filter-group');
+      if (sources.length === 0) {
+        sourceGroup.classList.add('hidden');
+        return;
+      }
+      sourceGroup.classList.remove('hidden');
+      sourceGroup.innerHTML = `
+        <span class="text-xs font-bold text-stone-400 flex items-center gap-1 shrink-0">
+          <i data-lucide="folder-open" class="w-3.5 h-3.5 text-[#FF9B71]"></i>
+          <span>來源篩選：</span>
+        </span>
+        <button
+          onclick="setFilterSource('ALL')"
+          class="px-2.5 py-1 rounded-xl text-xs font-semibold transition-colors shrink-0 ${
+            state.filterSource === 'ALL' ? 'bg-[#FF9B71] text-white' : 'bg-[#FFF0E5] text-stone-600 hover:bg-[#FFE0CC]'
+          }"
+        >
+          全部來源 (${sources.length})
+        </button>
+        ${sources.map(src => `
+          <button
+            onclick="setFilterSource('${escapeHtml(src)}')"
+            class="px-2.5 py-1 rounded-xl text-xs font-semibold transition-colors max-w-[220px] truncate shrink-0 ${
+              state.filterSource === src ? 'bg-[#FF9B71] text-white' : 'bg-[#F4F1EA] text-stone-600 hover:bg-[#FFE0CC]'
+            }"
+            title="${escapeHtml(src)}"
+          >
+            ${escapeHtml(src)}
+          </button>
+        `).join('')}
+      `;
+    }
+
+    function renderCardsGrid() {
+      const q = state.searchQuery.toLowerCase();
+      const filtered = state.vocabList.filter(item => {
+        const matchStatus =
+          state.learningStatusFilter === 'all' ||
+          (state.learningStatusFilter === 'learning' && !item.mastered) ||
+          (state.learningStatusFilter === 'mastered' && item.mastered);
+        const matchLevel = state.filterLevel === 'ALL' || item.cefr === state.filterLevel;
+        const matchSource = state.filterSource === 'ALL' || item.sourceTitle === state.filterSource;
+        const matchSearch =
+          item.term.toLowerCase().includes(q) ||
+          item.definitionZh.includes(q) ||
+          item.dailyExample.toLowerCase().includes(q);
+        return matchStatus && matchLevel && matchSource && matchSearch;
+      });
+
+      const container = document.getElementById('cards-grid-container');
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white/90 rounded-3xl border border-[#FFE5D4] p-12 text-center space-y-3">
+            <div class="w-14 h-14 rounded-full bg-[#E2F6EC] text-[#3D8B6B] flex items-center justify-center mx-auto">
+              <i data-lucide="check-circle-2" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-lg font-bold text-stone-800">
+              ${state.learningStatusFilter === 'learning'
+                ? '太棒了！目前分類下的單字都已經學會並收藏囉！'
+                : '目前沒有符合條件的單字'}
+            </h3>
+            <p class="text-sm text-stone-500">
+              ${state.learningStatusFilter === 'learning'
+                ? '你可以切換到「已學會收藏」回顧單字，或是前往「萃取新詞」加入更多內容。'
+                : '試著調整上方的篩選條件或搜尋關鍵字。'}
+            </p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          ${filtered.map(item => {
+            const isTermPlaying = state.speakingTextId === `${item.id}-term` && state.isSpeaking;
+            const isTermLoading = state.speakingTextId === `${item.id}-term` && state.isLoadingAudio;
+            const isDailyPlaying = state.speakingTextId === `${item.id}-daily` && state.isSpeaking;
+            const isSourcePlaying = state.speakingTextId === `${item.id}-source` && state.isSpeaking;
+
+            return `
+              <div class="bg-white/95 rounded-3xl border transition-all p-5 flex flex-col justify-between shadow-2xs hover:shadow-md ${
+                item.mastered ? 'border-[#B7E4C7] bg-[#F2FBF6]' : 'border-[#FFE5D4]'
+              }">
+                <div>
+                  <div class="flex items-start justify-between gap-2 mb-3">
+                    <div>
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <h2 class="text-xl font-bold text-stone-800">${escapeHtml(item.term)}</h2>
+                        <span class="text-sm font-mono text-stone-600 bg-[#F4F1EA] px-2.5 py-0.5 rounded-lg">
+                          ${escapeHtml(item.phonetic)}
+                        </span>
+                        <button
+                          onclick='speakText(${JSON.stringify(item.term)}, ${state.speechRate}, null, "${item.id}-term")'
+                          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all active:scale-95 ${
+                            isTermPlaying
+                              ? 'bg-[#FF9B71] text-white shadow-2xs'
+                              : 'text-[#B55D43] bg-[#FFE8D6] hover:bg-[#FFD8BE]'
+                          }"
+                        >
+                          <i data-lucide="${isTermLoading ? 'loader-2' : 'volume-2'}" class="w-3.5 h-3.5 ${isTermLoading ? 'animate-spin' : isTermPlaying ? 'animate-bounce' : ''}"></i>
+                          <span>${isTermPlaying ? '播放中' : '聽發音'}</span>
+                        </button>
+                      </div>
+                      <p class="text-sm text-stone-700 font-medium mt-1.5">
+                        <span class="text-[#3D8B6B] italic font-semibold mr-1.5">${escapeHtml(item.partOfSpeech)}</span>
+                        ${escapeHtml(item.definitionZh)}
+                      </p>
+                    </div>
+
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      <span class="text-xs font-bold px-2.5 py-1 rounded-full border ${getLevelBadgeStyle(item.cefr)}">
+                        ${escapeHtml(item.cefr)}
+                      </span>
+                      <button
+                        onclick="toggleMastered('${escapeHtml(item.id)}')"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                          item.mastered
+                            ? 'text-[#2D6A4F] bg-[#D8F3DC] hover:bg-[#FFF3B0] hover:text-[#7F5539]'
+                            : 'text-stone-700 bg-[#F4F1EA] hover:bg-[#6BCB9F] hover:text-white'
+                        }"
+                      >
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                        <span>${item.mastered ? '已學會 (復原)' : '我會了'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="space-y-3 mt-4 pt-4 border-t border-[#F4F1EA]">
+                    <!-- 日常常用例句 -->
+                    <div class="bg-[#EAF8F0] rounded-2xl p-3.5 border border-[#C7EBD7]">
+                      <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-[#2D6A4F]">日常常用範例</span>
+                        <button
+                          onclick='speakText(${JSON.stringify(item.dailyExample)}, ${state.speechRate}, null, "${item.id}-daily")'
+                          class="text-xs flex items-center gap-1 px-2.5 py-1 rounded-xl font-bold transition-all active:scale-95 ${
+                            isDailyPlaying
+                              ? 'bg-[#6BCB9F] text-white'
+                              : 'bg-white/90 text-[#2D6A4F] hover:bg-[#6BCB9F] hover:text-white border border-[#B7E4C7]'
+                          }"
+                        >
+                          <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+                          <span>${isDailyPlaying ? '停止' : '唸整句'}</span>
+                        </button>
+                      </div>
+                      <p class="text-sm text-stone-800 leading-relaxed">${escapeHtml(item.dailyExample)}</p>
+                    </div>
+
+                    <!-- 來源原句 -->
+                    <div class="bg-[#FFF3EA] rounded-2xl p-3.5 border border-[#FFE0CC]">
+                      <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[11px] font-semibold text-[#B55D43] flex items-center gap-1">
+                          <i data-lucide="youtube" class="w-3.5 h-3.5 text-[#E07A5F]"></i>
+                          <span>來源原句 (${escapeHtml(item.timestamp)})</span>
+                        </span>
+                        <button
+                          onclick='speakText(${JSON.stringify(item.sourceContext)}, ${state.speechRate}, null, "${item.id}-source")'
+                          class="text-xs flex items-center gap-1 px-2.5 py-1 rounded-xl font-bold transition-all active:scale-95 ${
+                            isSourcePlaying
+                              ? 'bg-[#FF9B71] text-white'
+                              : 'bg-white/90 text-[#B55D43] hover:bg-[#FF9B71] hover:text-white border border-[#FFD8BE]'
+                          }"
+                        >
+                          <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+                          <span>${isSourcePlaying ? '停止' : '唸原句'}</span>
+                        </button>
+                      </div>
+                      <p class="text-sm text-stone-700 italic leading-relaxed">"${escapeHtml(item.sourceContext)}"</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-[#F4F1EA] flex items-center justify-between">
+                  <span class="text-xs text-stone-400 truncate max-w-[160px]">${escapeHtml(item.sourceTitle)}</span>
+                  <button
+                    onclick="startShadowingItem('${escapeHtml(item.id)}')"
+                    class="text-xs font-bold text-white flex items-center gap-1.5 bg-gradient-to-r from-[#FF9B71] to-[#FFB482] hover:from-[#F2845C] hover:to-[#FF9B71] px-3.5 py-2 rounded-2xl shadow-2xs transition-all active:scale-95"
+                  >
+                    <i data-lucide="repeat" class="w-3.5 h-3.5"></i>
+                    <span>跟讀這一句 →</span>
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    function renderShadowingTab() {
+      const pool = getShadowingPool();
+      const item = pool[state.currentIndex % pool.length] || state.vocabList[0];
+      if (!item) return;
+
+      const hasUnmastered = state.vocabList.some(v => !v.mastered);
+      const isMainPlaying = state.speakingTextId === 'shadow-main' && state.isSpeaking;
+      const targetSentence = item[state.practiceTarget];
+
+      document.getElementById('shadowing-container').innerHTML = `
+        <!-- 頂部進度與切換控制 -->
+        <div class="flex items-center justify-between bg-white/90 px-4 sm:px-5 py-3.5 rounded-3xl border border-[#FFE5D4] shadow-2xs mb-6">
+          <button
+            onclick="changeShadowIndex(-1)"
+            title="鍵盤左方向鍵 ←"
+            class="flex items-center gap-1.5 text-sm font-bold text-stone-700 hover:text-[#E07A5F] px-3.5 py-2 rounded-2xl bg-[#FFF8F3] hover:bg-[#FFE8D6] border border-[#FFE0CC] transition-all active:scale-95"
+          >
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+            <span>上一題</span>
+          </button>
+
+          <div class="text-center">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-[#3D8B6B] block">
+              ${hasUnmastered ? '專注學習中單字' : '全部單字總複習'} · 可用方向鍵切換
+            </span>
+            <span class="text-sm sm:text-base font-extrabold text-stone-800">
+              第 ${(state.currentIndex % pool.length) + 1} / ${pool.length} 題：${escapeHtml(item.term)}
+            </span>
+          </div>
+
+          <button
+            onclick="changeShadowIndex(1)"
+            title="鍵盤右方向鍵 →"
+            class="flex items-center gap-1.5 text-sm font-bold text-stone-700 hover:text-[#E07A5F] px-3.5 py-2 rounded-2xl bg-[#FFF8F3] hover:bg-[#FFE8D6] border border-[#FFE0CC] transition-all active:scale-95"
+          >
+            <span>下一題</span>
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- 核心復讀卡片 -->
+        <div class="bg-white/95 rounded-3xl border border-[#FFE5D4] shadow-xs p-6 sm:p-8 space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#F4F1EA]">
+            <div>
+              <div class="flex items-center gap-2.5 flex-wrap">
+                <span class="text-xs font-bold px-2.5 py-0.5 rounded-full border ${getLevelBadgeStyle(item.cefr)}">
+                  ${escapeHtml(item.cefr)}
+                </span>
+                <h2 class="text-2xl font-bold text-stone-800">${escapeHtml(item.term)}</h2>
+                <span class="text-sm font-mono text-stone-500">${escapeHtml(item.phonetic)}</span>
+                <button
+                  onclick="toggleMastered('${escapeHtml(item.id)}', true)"
+                  class="ml-1 flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-bold transition-all active:scale-95 ${
+                    item.mastered
+                      ? 'bg-[#D8F3DC] text-[#2D6A4F]'
+                      : 'bg-[#EAF8F0] text-[#2D6A4F] border border-[#B7E4C7] hover:bg-[#6BCB9F] hover:text-white'
+                  }"
+                >
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                  <span>${item.mastered ? '已學會 (點此復原)' : '我會了，下一題'}</span>
+                </button>
+              </div>
+              <p class="text-sm text-stone-600 mt-1.5">${escapeHtml(item.definitionZh)}</p>
+            </div>
+
+            <div class="flex bg-[#F4F1EA] p-1 rounded-2xl self-start">
+              <button
+                onclick="setPracticeTarget('dailyExample')"
+                class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  state.practiceTarget === 'dailyExample' ? 'bg-[#6BCB9F] text-white shadow-2xs' : 'text-stone-600 hover:text-stone-800'
+                }"
+              >
+                日常常用範例
+              </button>
+              <button
+                onclick="setPracticeTarget('sourceContext')"
+                class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  state.practiceTarget === 'sourceContext' ? 'bg-[#FF9B71] text-white shadow-2xs' : 'text-stone-600 hover:text-stone-800'
+                }"
+              >
+                影片/文章原句
+              </button>
+            </div>
+          </div>
+
+          <!-- 目標朗讀句子展示區 -->
+          <div class="bg-gradient-to-r from-[#FFF3EA] via-[#FFFDF9] to-[#EAF8F0] rounded-3xl p-6 text-center space-y-3 border border-[#FFE0CC]">
+            <p class="text-xl sm:text-2xl font-medium text-stone-800 leading-relaxed">
+              "${escapeHtml(targetSentence)}"
+            </p>
+            ${state.isLoadingAudio ? `
+              <div class="inline-flex items-center gap-1.5 text-xs font-bold text-[#B55D43] bg-[#FFE8D6] px-3 py-1 rounded-full">
+                <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>
+                <span>正在生成擬真${state.voiceGender === 'female' ? '女聲' : '男聲'}...</span>
+              </div>
+            ` : ''}
+            ${state.isSpeaking && !state.isLoadingAudio ? `
+              <div class="inline-flex items-center gap-1.5 text-xs font-bold text-[#2D6A4F] bg-[#D8F3DC] px-3 py-1 rounded-full animate-pulse">
+                <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+                <span>正在播放 (${state.voiceGender === 'female' ? '女聲 Aoede' : '男聲 Puck'})...</span>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- 播放與循環控制列 -->
+          <div class="flex flex-wrap items-center justify-center gap-3">
+            <button
+              onclick='speakText(${JSON.stringify(targetSentence)}, ${state.speechRate}, null, "shadow-main")'
+              ${state.isLoadingAudio ? 'disabled' : ''}
+              title="快捷鍵：空白鍵 (Space)"
+              class="flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm shadow-2xs transition-all active:scale-95 ${
+                isMainPlaying
+                  ? 'bg-[#F4A261] hover:bg-[#E76F51] text-white'
+                  : 'bg-[#FF9B71] hover:bg-[#F2845C] disabled:bg-[#FFD8BE] text-white'
+              }"
+            >
+              <i data-lucide="${isMainPlaying ? 'pause' : 'play'}" class="w-4 h-4 fill-current"></i>
+              <span>${isMainPlaying ? '停止朗讀 (Space)' : '聽示範朗讀 (Space)'}</span>
+            </button>
+
+            <button
+              onclick="toggleLooping()"
+              class="flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm border transition-all active:scale-95 ${
+                state.isLooping
+                  ? 'bg-[#6BCB9F] text-white border-[#6BCB9F] shadow-2xs'
+                  : 'bg-white text-stone-700 border-[#D8E2DC] hover:border-[#6BCB9F] hover:text-[#2D6A4F]'
+              }"
+            >
+              <i data-lucide="repeat" class="w-4 h-4 ${state.isLooping ? 'animate-spin' : ''}"></i>
+              <span>${state.isLooping ? '循環中 (點此停止)' : '重複循環聽'}</span>
+            </button>
+
+            <div class="flex items-center gap-1.5 bg-[#F4F1EA] px-3.5 py-2.5 rounded-2xl text-xs font-bold text-stone-600">
+              <i data-lucide="sliders" class="w-3.5 h-3.5 text-[#FF9B71]"></i>
+              <span>語速</span>
+              ${[0.75, 1.0, 1.2].map(rate => `
+                <button
+                  onclick="setSpeechRate(${rate})"
+                  class="px-2.5 py-1 rounded-xl transition-colors ${
+                    state.speechRate === rate ? 'bg-white text-[#E07A5F] shadow-2xs' : 'hover:text-stone-800'
+                  }"
+                >
+                  ${rate}x
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- 麥克風跟讀與即時比對區 -->
+          <div class="pt-6 border-t border-[#F4F1EA] space-y-4">
+            <div class="flex flex-col items-center text-center space-y-3">
+              <span class="text-xs font-bold uppercase tracking-wider text-stone-400">AI 發音跟讀比對</span>
+              <button
+                onclick="toggleRecording()"
+                class="w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-sm ${
+                  state.isRecording
+                    ? 'bg-[#FF8FA3] text-white scale-110 ring-4 ring-[#FFCCD5] animate-pulse'
+                    : 'bg-gradient-to-br from-[#74D3AE] to-[#52B788] hover:from-[#52B788] hover:to-[#40916C] text-white'
+                }"
+              >
+                <i data-lucide="${state.isRecording ? 'mic-off' : 'mic'}" class="w-7 h-7"></i>
+              </button>
+              <p class="text-xs text-stone-500">
+                ${state.isRecording ? '正在聆聽您的發音... 唸完請再次點擊停止' : '點擊麥克風開始跟讀整句英文'}
+              </p>
+            </div>
+
+            ${state.speechError ? `
+              <div class="p-3 rounded-2xl bg-[#FFF0F3] border border-[#FFCCD5] text-[#9B2226] text-xs flex items-center gap-2">
+                <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
+                <span>${escapeHtml(state.speechError)}</span>
+              </div>
+            ` : ''}
+
+            ${(state.spokenText || state.pronunciationScore !== null) ? `
+              <div class="bg-[#F9F8F4] rounded-3xl p-5 border border-[#EAE6DC] space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-stone-500">您的跟讀辨識結果：</span>
+                  ${state.pronunciationScore !== null ? `
+                    <span class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${
+                      state.pronunciationScore >= 80 ? 'bg-[#D8F3DC] text-[#2D6A4F]' : 'bg-[#FFF3B0] text-[#7F5539]'
+                    }">
+                      <i data-lucide="award" class="w-3.5 h-3.5"></i>
+                      <span>精準度：${state.pronunciationScore}%</span>
+                    </span>
+                  ` : ''}
+                </div>
+                <p class="text-base text-stone-800 bg-white p-3 rounded-2xl border border-[#EAE6DC]">
+                  "${escapeHtml(state.spokenText)}"
+                </p>
+                <div class="text-xs text-stone-500">
+                  <span class="font-semibold block mb-1">逐字比對檢視（薄荷綠為準確，草莓粉為漏讀或發音偏差）：</span>
+                  <div class="p-2.5 bg-white rounded-2xl border border-[#EAE6DC] text-sm leading-relaxed">
+                    ${buildDiffHtml(targetSentence, state.spokenText)}
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    function renderAll() {
+      updateApiStatusBadge();
+      renderStatsDashboard();
+      renderFilterBars();
+      renderCardsGrid();
+      if (state.activeTab === 'shadowing') {
+        renderShadowingTab();
+      }
+      lucide.createIcons();
+    }
+
+    // 初始化渲染
+    window.addEventListener('DOMContentLoaded', () => {
+      renderAll();
+    });
+  </script>
+</body>
+</html>
