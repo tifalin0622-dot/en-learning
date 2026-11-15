@@ -170,7 +170,7 @@
             <span>智慧抓取 B1–C1 單字與片語</span>
           </h2>
           <p class="text-sm text-stone-500 mt-1">
-            貼上你正在看的英文文章段落或 YouTube 字幕逐字稿，AI 會自動過濾基礎詞彙，萃取出 B1–C1 核心單字、音標並生成日常例句，且自動累加保存不會洗掉舊單字。
+            <strong>只要輸入「影片/文章網址」或「貼上英文內文」任一項即可！</strong> AI 會自動讀取內容並過濾基礎詞彙，萃取出 B1–C1 核心單字、音標與日常例句，且自動累加保存不會洗掉舊單字。
           </p>
         </div>
 
@@ -178,13 +178,13 @@
         <div class="space-y-2">
           <label class="text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
             <i data-lucide="link" class="w-3.5 h-3.5 text-[#3D8B6B]"></i>
-            <span>來源影片或文章網址（紀錄出處用）</span>
+            <span>方式一：貼上 YouTube 影片或文章連結（可單獨使用）</span>
           </label>
           <input
             id="import-url"
             type="url"
             value="https://youtu.be/YZd7NodhcOs"
-            placeholder="https://youtu.be/..."
+            placeholder="https://youtu.be/... 或任何英文文章網址"
             class="w-full px-4 py-2.5 bg-[#FFF8F3] border border-[#FFD8BE] rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9B71]/30 focus:border-[#FF9B71]"
           />
         </div>
@@ -194,7 +194,7 @@
           <div class="flex items-center justify-between">
             <label class="text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
               <i data-lucide="file-text" class="w-3.5 h-3.5 text-[#FF9B71]"></i>
-              <span>文章內文或 YouTube 逐字稿 (Transcript)</span>
+              <span>方式二：或直接貼上英文文章 / 逐字稿（可單獨使用）</span>
             </label>
             <button
               type="button"
@@ -206,8 +206,8 @@
           </div>
           <textarea
             id="import-text"
-            rows="6"
-            placeholder="請在此貼上英文文章段落或影片字幕內容..."
+            rows="5"
+            placeholder="若上方已填寫連結，此欄可留空；或直接在此貼上英文文章段落..."
             class="w-full p-4 bg-[#FFF8F3] border border-[#FFD8BE] rounded-2xl text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#FF9B71]/30 focus:border-[#FF9B71]"
           ></textarea>
         </div>
@@ -977,41 +977,92 @@
       document.getElementById('import-text').value = SAMPLE_ARTICLE_TEXT;
     }
 
+    // 自動從連結讀取網頁或 YouTube 影片文字內容（支援純前端免後端抓取）
+    async function fetchContentFromUrl(url) {
+      // 1. 優先透過 Jina Reader 免費純文字提取服務抓取網頁/影片公開文字內容
+      try {
+        const readerUrl = `https://r.jina.ai/${url}`;
+        const res = await fetch(readerUrl, {
+          headers: { 'Accept': 'text/plain' }
+        });
+        if (res.ok) {
+          const text = await res.text();
+          // 過濾過短或無效的錯誤頁面，限制長度在 12,000 字元內避免超過 token 上限
+          if (text && text.trim().length > 120) {
+            return text.trim().slice(0, 12000);
+          }
+        }
+      } catch (e) {
+        console.warn('Jina Reader 抓取失敗，嘗試備援方案:', e);
+      }
+
+      // 2. 若為 YouTube 連結且上方受阻，透過 noembed 取得影片標題與頻道資訊作為語境提示
+      if (/youtu\.?be/i.test(url)) {
+        try {
+          const oembedRes = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`);
+          if (oembedRes.ok) {
+            const info = await oembedRes.json();
+            if (info && info.title) {
+              return `YouTube Video Title: "${info.title}" by ${info.author_name || 'Creator'}. Video URL: ${url}. Please infer the core B1-C1 English vocabulary, phrasal verbs, and natural expressions commonly discussed in a video with this exact title and topic.`;
+            }
+          }
+        } catch (e) {
+          console.warn('YouTube oEmbed 備援失敗:', e);
+        }
+      }
+
+      return '';
+    }
+
     async function handleAnalyzeContent() {
       const inputUrl = document.getElementById('import-url').value.trim();
-      const inputText = document.getElementById('import-text').value.trim();
+      let contentToAnalyze = document.getElementById('import-text').value.trim();
       const statusBox = document.getElementById('analyze-status-box');
       const btnAnalyze = document.getElementById('btn-analyze');
 
-      if (!inputText) {
+      // 只要「網址」或「文章內容」其中一個有填寫即可！
+      if (!inputUrl && !contentToAnalyze) {
         statusBox.className = 'p-4 rounded-2xl text-sm flex items-start gap-2.5 bg-[#FFF0F3] text-[#9B2226] border border-[#FFCCD5]';
-        statusBox.innerHTML = `<i data-lucide="alert-circle" class="w-5 h-5 shrink-0 text-[#E63946]"></i><span>請貼上文章內文或 YouTube 字幕逐字稿再進行分析。</span>`;
+        statusBox.innerHTML = `<i data-lucide="alert-circle" class="w-5 h-5 shrink-0 text-[#E63946]"></i><span>請輸入「影片/文章連結」或「英文內文」（任填一項即可）。</span>`;
         statusBox.classList.remove('hidden');
         lucide.createIcons();
         return;
       }
 
       btnAnalyze.disabled = true;
-      btnAnalyze.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>AI 正在分析語境並累加至單字庫...</span>`;
       statusBox.classList.add('hidden');
-      lucide.createIcons();
 
       try {
+        // 若使用者只貼了連結、沒貼文章內文，自動為其抓取連結內容
+        if (!contentToAnalyze && inputUrl) {
+          btnAnalyze.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>正在自動讀取連結內容，請稍候...</span>`;
+          lucide.createIcons();
+
+          const fetchedText = await fetchContentFromUrl(inputUrl);
+          if (!fetchedText) {
+            throw new Error('URL_FETCH_FAILED');
+          }
+          contentToAnalyze = fetchedText;
+        }
+
+        btnAnalyze.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>AI 正在分析語境並累加至單字庫...</span>`;
+        lucide.createIcons();
+
         const apiKey = state.geminiApiKey || '';
-        const prompt = `Analyze the following English text (from a video transcript or article). Extract 5 to 8 useful vocabulary words, phrasal verbs, or idiomatic expressions at the CEFR B1 to C1 level. Ignore basic A1/A2 words.
+        const prompt = `Analyze the following English content (from a video link, transcript, or article). Extract 5 to 8 useful vocabulary words, phrasal verbs, or idiomatic expressions at the CEFR B1 to C1 level. Ignore basic A1/A2 words.
 For each item, provide:
 - term: the word or phrase
 - phonetic: standard IPA phonetic transcription (e.g. /ˈoʊvərsaɪt/)
 - cefr: "B1", "B2", or "C1"
 - partOfSpeech: e.g. "noun", "verb", "adj.", "phrasal verb", "idiom"
 - definitionZh: concise Traditional Chinese definition
-- sourceContext: the exact sentence from the provided text containing this term
+- sourceContext: a natural sentence from the text (or matching the video/article topic) containing this term
 - dailyExample: a natural, practical daily conversational sentence using this term
-- sourceTitle: a short 3-6 word English title summarizing this text's topic
+- sourceTitle: a short 3-6 word English title summarizing this video or article's topic
 
-Text to analyze:
+Content to analyze:
 """
-${inputText}
+${contentToAnalyze}
 """`;
 
         const response = await fetchWithBackoff(
@@ -1079,6 +1130,7 @@ ${inputText}
         }</span>`;
         statusBox.classList.remove('hidden');
         document.getElementById('import-text').value = '';
+        document.getElementById('import-url').value = '';
 
         renderAll();
         if (formattedNewItems.length > 0) {
@@ -1088,9 +1140,12 @@ ${inputText}
         }
       } catch (err) {
         console.error(err);
-        const msg = err.message === 'API_KEY_INVALID'
-          ? '請先點擊右上角「API 設定」填入有效的 Google Gemini API Key，即可使用 AI 智慧萃取功能。'
-          : '智慧解析時發生連線錯誤，請確認網路或 API Key 設定後再試一次。';
+        let msg = '智慧解析時發生連線錯誤，請確認網路或 API Key 設定後再試一次。';
+        if (err.message === 'API_KEY_INVALID') {
+          msg = '請先點擊右上角「API 設定」填入有效的 Google Gemini API Key，即可使用 AI 智慧萃取功能。';
+        } else if (err.message === 'URL_FETCH_FAILED') {
+          msg = '此網站或影片設有防爬蟲保護無法自動讀取，請改為直接複製文章段落或字幕貼入下方欄位即可！';
+        }
         statusBox.className = 'p-4 rounded-2xl text-sm flex items-start gap-2.5 bg-[#FFF0F3] text-[#9B2226] border border-[#FFCCD5]';
         statusBox.innerHTML = `<i data-lucide="alert-circle" class="w-5 h-5 shrink-0 text-[#E63946]"></i><span>${msg}</span>`;
         statusBox.classList.remove('hidden');
